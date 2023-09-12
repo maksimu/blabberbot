@@ -1,7 +1,33 @@
 version: '3.3'
 services:
+    reverse-proxy:
+        image: traefik:v2.5
+        command:
+            - --api.insecure
+            - --providers.docker
+            - --entrypoints.websecure.address=:443
+            - --certificatesresolvers.leresolver.acme.httpchallenge=true
+            - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=websecure
+            - --certificatesresolvers.leresolver.acme.email=mustinov@keepersecurity.com
+        ports:
+            - "443:443"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./acme.json:/acme.json
+        networks:
+            - traefik-net
+
+
     chatbot-ui:
         build: ./chatbot-ui
         ports:
         - "80:3000"
-        network_mode: "host"
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.chatbot.rule=Host(`chat.keeperpamlab.com`)
+            - traefik.http.routers.chatbot.entrypoints=websecure
+            - traefik.http.routers.chatbot.tls.certresolver=leresolver
+        networks:
+            - traefik-net
+networks:
+    traefik-net:
