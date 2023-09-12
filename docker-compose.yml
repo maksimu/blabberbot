@@ -3,8 +3,9 @@ services:
     reverse-proxy:
         image: traefik:v2.5
         command:
-            - --api.insecure
+#            - --api.insecure
             - --providers.docker
+            - --log.level=DEBUG
             - --entrypoints.websecure.address=:443
             - --certificatesresolvers.leresolver.acme.httpchallenge=true
             - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=websecure
@@ -20,8 +21,8 @@ services:
 
     chatbot-ui:
         build: ./chatbot-ui
-        ports:
-        - "80:3000"
+#        ports:
+#        - "80:3000"
         labels:
             - traefik.enable=true
             - traefik.http.routers.chatbot.rule=Host(`chat.keeperpamlab.com`)
