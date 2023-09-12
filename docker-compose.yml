@@ -1,34 +1,116 @@
 version: '3.3'
+#services:
+#    reverse-proxy:
+#        image: traefik:v2.5
+#        command:
+##            - --api.insecure
+#            - --providers.docker
+#            - --log.level=DEBUG
+#            - --entrypoints.web.address=:80
+#            - --entrypoints.websecure.address=:443
+#            - --certificatesresolvers.leresolver.acme.httpchallenge=true
+#            - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=websecure
+#            - --certificatesresolvers.leresolver.acme.email=mustinov@keepersecurity.com
+#        ports:
+#            - "80:80"
+#            - "443:443"
+#        volumes:
+#            - /var/run/docker.sock:/var/run/docker.sock
+#            - ./acme.json:/acme.json
+#        networks:
+#            - traefik-net
+#
+#
+#    chatbot-ui:
+#        build: ./chatbot-ui
+##        ports:
+##        - "80:3000"
+#        labels:
+#            - traefik.enable=true
+#            - traefik.http.routers.chatbot.rule=Host(`chat.keeperpamlab.com`)
+#            - traefik.http.routers.chatbot.entrypoints=websecure
+#            - traefik.http.routers.chatbot.tls.certresolver=leresolver
+#        networks:
+#            - traefik-net
+#networks:
+#    traefik-net:
+
+
 services:
-    reverse-proxy:
-        image: traefik:v2.5
-        command:
-#            - --api.insecure
-            - --providers.docker
-            - --log.level=DEBUG
-            - --entrypoints.websecure.address=:443
-            - --certificatesresolvers.leresolver.acme.httpchallenge=true
-            - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=websecure
-            - --certificatesresolvers.leresolver.acme.email=mustinov@keepersecurity.com
+    traefik:
+        # Sample project that shows how to configure letsencrypt: https://github.com/bubelov/traefik-letsencrypt-compose/blob/master/docker-compose.yml
+        # official pages:
+        #   - https://doc.traefik.io/traefik/user-guides/docker-compose/acme-http/
+        #   - https://doc.traefik.io/traefik/https/acme/
+        container_name: traefik_container
+        image: traefik:latest
+        platform: linux/amd64
         ports:
             - "443:443"
+        restart: always
+        command:
+            # Enable fined logging if something isn't working.
+            # Chances are, Traefik will tell you why. Be careful in production as it
+            # exposes the traffic you might not want to expose.
+            #- "--log.level=DEBUG"
+
+            - "--entrypoints.http.address=:80"
+            - "--entrypoints.https.address=:443"
+
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+
+            # LetsEncrypt Staging Server - uncomment when testing. If you uncommented the acme.caserver line,
+            # you will get an SSL error, but if you display the certificate and see it was emitted by Fake LE
+            # Intermediate X1 then it means all is good. (It is the staging environment intermediate certificate
+            # used by let's encrypt). Then you can now safely comment the acme.caserver line, remove the
+            # letsencrypt/acme.json file and restart Traefik to issue a valid certificate.
+
+
+            #      - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+            #      - "--api.insecure=true"
+            #- "--accessLog"
+            #      - "--api.dashboard"
+            - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+            - "--certificatesresolvers.letsencrypt.acme.email=mustinov@keepersecurity.com"
+            - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+            - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+            - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=https"
+
         volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - ./acme.json:/acme.json
-        networks:
-            - traefik-net
-
-
-    chatbot-ui:
-        build: ./chatbot-ui
-#        ports:
-#        - "80:3000"
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./traefik-data:/letsencrypt
         labels:
-            - traefik.enable=true
-            - traefik.http.routers.chatbot.rule=Host(`chat.keeperpamlab.com`)
-            - traefik.http.routers.chatbot.entrypoints=websecure
-            - traefik.http.routers.chatbot.tls.certresolver=leresolver
-        networks:
-            - traefik-net
-networks:
-    traefik-net:
+            # Redirect all HTTP traffic to HTTPS
+            - "traefik.http.routers.to-https.rule=HostRegexp(`{host:.+}`)"
+            - "traefik.http.routers.to-https.entrypoints=http"
+            - "traefik.http.routers.to-https.middlewares=to-https"
+
+            - "traefik.http.routers.traefik.rule=PathPrefix(`/traefik`)"
+            - "traefik.http.routers.traefik.entrypoints=https"
+            - "traefik.http.routers.traefik.middlewares=auth"
+            - "traefik.http.routers.traefik.service=api@internal"
+            - "traefik.http.routers.traefik.tls=true"
+            - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+
+            - "traefik.http.middlewares.to-https.redirectscheme.scheme=https"
+            - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$zi5n43jq9S63gBqSJwHTH.nCai2vB0SW/ABPGg2jSGmJBVRo0A.ni"
+
+    chatgpt:
+        container_name: chatgpt_container
+        build:
+            context: chatbot-ui
+            dockerfile: Dockerfile
+        restart: always
+        labels:
+            - "traefik.enable=true"
+            # this defines the url, traefik will get the ssl certificate for
+            - "traefik.http.routers.https.rule=Host(`chat.keeperpamlab.com`)"
+            - "traefik.http.routers.https.entrypoints=https"
+            - "traefik.http.routers.https.tls=true"
+            - "traefik.http.routers.https.tls.certresolver=letsencrypt"
+
+            # this let's us forward the port we set above.
+            # Change this to the port you expose in your application (3000, 4000, ...) or
+            # remove the line, if your application already exposes port 80/443
+            - "traefik.http.services.chatgpt.loadbalancer.server.port=3000"
