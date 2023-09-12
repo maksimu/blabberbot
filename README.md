@@ -82,12 +82,19 @@ Following is step by step explanation of the given Linux history:
    cd keeperchatbot/
    ```
 
-10. **Start the Project with Docker Compose**   
+10. **Setting up the Environment File**
+
+    - Create a new file named `.env` in the same directory where your Docker Compose file is located.
+    - Open the `.env` file with your preferred text editor and add the following entries to your `.env` file:
+     ```shell
+     LE_EMAIL=<your-email>
+     CHAT_DOMAIN=<your-domain>
+     ```
+     Note: Replace `<your-email>` and `<your-domain>` with your actual email and domain. Do not commit `.env` file to the source control.
+
+11. **Start the Project with Docker Compose**   
     To start the project with Docker Compose, use the following command:
 
     ```shell
     sudo docker compose up
     ```
-
-
-These steps are just a high-level overview based on your Linux history, the specific needs may vary depending on the application requirements. Also, the commands may be repeated multiple times in different conditions.
