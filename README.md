@@ -69,17 +69,17 @@ Following is step by step explanation of the given Linux history:
    ```
 
 8. **Clone the Repository**   
-   Clone the 'keeperchatbot' project from GitHub:
+   Clone the 'blabberbot' project from GitHub:
 
    ```shell
-   git clone https://github.com/maksimu/keeperchatbot.git
+   git clone https://github.com/maksimu/blabberbot.git
    ```
 
 9. **Navigate into the Project**   
-   Change the directory to the newly cloned keeperchatbot directory:
+   Change the directory to the newly cloned blabberbot directory:
 
    ```shell
-   cd keeperchatbot/
+   cd blabberbot/
    ```
 
 10. **Setting up the Environment File**
