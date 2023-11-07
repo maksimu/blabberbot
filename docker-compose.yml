@@ -66,6 +66,8 @@ services:
         build:
             context: chatbot-ui
             dockerfile: Dockerfile
+        environment:
+            - 'NEXT_PUBLIC_DEFAULT_TEMPERATURE=0.5'
         restart: always
         labels:
             - "traefik.enable=true"
