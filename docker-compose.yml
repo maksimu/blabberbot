@@ -12,6 +12,7 @@ services:
         ports:
             - "443:443"
             - "80:80"
+            - "8080:8080"
         restart: always
         command:
             # Enable fined logging if something isn't working.
@@ -33,9 +34,9 @@ services:
 
 
             #- "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-            #- "--api.insecure=true"
-            #- "--accessLog"
-            #- "--api.dashboard"
+            - "--api.insecure=true"
+            - "--accessLog"
+            - "--api.dashboard"
             - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
             - "--certificatesresolvers.letsencrypt.acme.email=${LE_EMAIL}"
             - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
@@ -59,6 +60,7 @@ services:
             - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
 
             - "traefik.http.middlewares.to-https.redirectscheme.scheme=https"
+            - "traefik.http.middlewares.to-https.redirectscheme.permanent=true"
             - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$zi5n43jq9S63gBqSJwHTH.nCai2vB0SW/ABPGg2jSGmJBVRo0A.ni"
 
     chatgpt:
@@ -66,8 +68,6 @@ services:
         build:
             context: chatbot-ui
             dockerfile: Dockerfile
-        environment:
-            - 'NEXT_PUBLIC_DEFAULT_TEMPERATURE=0.5'
         restart: always
         labels:
             - "traefik.enable=true"
